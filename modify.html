@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>modify page</title>
+</head>
+<body>
+    <h1>modify page</h1>
+    <hr />
+    <form method="post">
+        <fieldset>
+            <legend>modify data</legend>
+            <table>
+                <tr>
+                    <td><label>genre</label></td>
+                    <td><input type="text" name="genre" value="<%= data.genre %>" /></td>
+                </tr>
+                <tr>
+                    <td><label>name</label></td>
+                    <td><input type="text" name="name" value="<%= data.name %>" /></td>
+                </tr>
+                <tr>
+                    <td><label>writer</label></td>
+                    <td><input type="text" name="writer" value="<%= data.writer %>" /></td>
+                </tr>
+            </table>
+            <input type="submit">
+        </fieldset>
+    </form>
+</body>
+</html>
