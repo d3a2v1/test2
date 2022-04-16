@@ -4,27 +4,44 @@ const fs = require('fs');
 const ejs = require('ejs');
 const bodyParser = require('body-parser');
 const { response } = require('express');
+const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
 
-const connection = mysql.createConnection({
+const options = {
     host: 'localhost',
     user: 'root',
     password: '1234',
     database: 'comicbook',
     port: '3306',
-});
+};
+
+const connection = mysql.createConnection(options);
 
 const app = express();
+
+const sessionStore = new MySQLStore(options);
+
+app.use(
+    session({
+        secret: 'secret key',
+        store: sessionStore,
+        resave: false,
+        saveUninitialized: false,
+    })
+);
 
 app.use(bodyParser.urlencoded({
     extended: false,
 }));
 
-app.listen(3000, () => {
-    console.log('server running');
-    connection.connect();
-});
-
 app.get('/', (request, response) => {
+    response.redirect('/booklist');
+})
+
+app.get('/booklist', (request, response) => {
+    if (request.session.user === undefined) {
+        return response.redirect('/login');
+    }
     fs.readFile('bookList.html', 'utf-8', (error,data) => {
         connection.query('SELECT * from books', (error, results, field) => {
             if (error) throw error;
@@ -76,3 +93,63 @@ app.get('/delete/:id', (request, response) => {
         response.redirect('/');
     });
 }); 
+
+app.get('/join', (request, response) => {
+    fs.readFile('joinMember.html', 'utf-8', (error, data) => {
+        if (error) throw error;
+        response.send(data);
+    });
+});
+
+app.post('/join', (request, response) => {
+    const body = request.body;
+    connection.query('INSERT INTO member (id, password, email) VALUE (?, ?, ?)', 
+    [body.id, body.password, body.email], (error, results) => {
+        if (error) throw error;
+        response.redirect('/');
+    });
+});
+
+app.get('/login', (request, response) => {
+    if(request.session.user !== undefined) {
+        return response.redirect('/');
+    }
+    fs.readFile('login.html', 'utf-8', (error, data) => {
+        if (error) throw error;
+        response.send(data);
+    });
+});
+
+app.post('/login', (request, response) => {
+    const body = request.body;
+    connection.query('SELECT * from member', (error, results, field) => {
+        for(const i in results) {
+            if(body.id === results[i].id && body.password === results[i].password) {
+                console.log('로그인 성공');
+                request.session.user = body.id;
+                request.session.save((error) => {
+                    if (error) throw error;
+                    response.redirect('/');
+                });
+                console.log(`리퀘스트 --------${request}-------`);
+                console.log(`리퀘스트.세션 --------${request.session}----------`);
+                console.log(`리퀘스트.유저 --------${request.session.user}----------`);
+            } else {
+                console.log('로그인 실패');
+                response.redirect('/login');
+            }
+        }
+    });
+});
+
+app.get('/logout', (request, response) => {
+    request.session.destroy((error) => {
+        if (error) throw error;
+        response.redirect('/');
+    })
+})
+
+app.listen(3000, () => {
+    console.log('server running');
+    connection.connect();
+});
